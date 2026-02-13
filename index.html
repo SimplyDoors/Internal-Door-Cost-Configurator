@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimplyDoors Cost Configurator (Internal)</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #2980b9;
+            --bg: #f5f7fa;
+            --border: #dcdde1;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --warning: #f39c12;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 { margin: 0; font-size: 1.5rem; }
+        header p { margin: 5px 0 0; opacity: 0.8; font-size: 0.9rem; }
+
+        .calculator-body { padding: 30px; }
+        
+        fieldset {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 25px;
+            background: #fff;
+        }
+        legend {
+            font-weight: bold;
+            color: var(--accent);
+            padding: 0 10px;
+            font-size: 1.1rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: var(--secondary); }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: #fff;
+        }
+        select:focus { border-color: var(--accent); outline: none; }
+
+        .checkbox-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .checkbox-item:hover { background-color: #f8f9fa; }
+        .checkbox-item input { margin-right: 12px; transform: scale(1.2); }
+        .checkbox-item span { flex-grow: 1; font-size: 0.95rem; }
+        .cost-badge {
+            background: #e1e8ef;
+            color: var(--secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .sticky-footer {
+            position: sticky;
+            bottom: 0;
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .total-label { font-size: 1.2rem; }
+        .total-amount { font-size: 2rem; font-weight: bold; color: #2ecc71; }
+        
+        .alert {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+            font-size: 0.9rem;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .section-note {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        /* Utility classes */
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Internal Door Cost Configurator</h1>
+        <p>Based on Woodgrain 2025 Pricing & Internal Production Data</p>
+    </header>
+
+    <div class="calculator-body">
+        
+        <fieldset>
+            <legend>1. Slab Configuration</legend>
+            <div class="grid-3">
+                <div class="form-group">
+                    <label for="doorStyle">Style Family</label>
+                    <select id="doorStyle" onchange="updateConfig()">
+                        <option value="molded">Molded Raised Panel</option>
+                        <option value="flushHB">Flush Hardboard (Primed)</option>
+                        <option value="flushBirch">Flush Birch</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="doorHeight">Height</label>
+                    <select id="doorHeight" onchange="updateConfig()">
+                        <option value="68">6'8"</option>
+                        <option value="70">7'0"</option>
+                        <option value="80">8'0"</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="doorType">Thickness & Core</label>
+                    <select id="doorType" onchange="updateConfig()">
+                        </select>
+                </div>
+            </div>
+            
+            <div class="grid-3" style="margin-top: 15px;">
+                <div class="form-group">
+                    <label for="purchaseType">Purchasing Tier</label>
+                    <select id="purchaseType" onchange="calculate()">
+                        <option value="jobLot">Warehouse Job Lot (Standard)</option>
+                        <option value="pallet">Warehouse Full Pallet</option>
+                        <option value="drop">Drop Shipment</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="doorWidth">Size (Width)</label>
+                    <select id="doorWidth" onchange="calculate()">
+                        </select>
+                </div>
+                <div class="form-group">
+                    <label>Base Slab Cost</label>
+                    <div id="baseSlabCost" style="font-size: 1.5rem; font-weight: bold; color: var(--accent); padding-top: 5px;">$0.00</div>
+                    <div id="priceAlert" class="alert">Price N/A for this Tier</div>
+                </div>
+            </div>
+
+            <div id="dropShipAdders" class="hidden" style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 15px;">
+                <label style="color: var(--warning);">Drop Shipment Fees (Page 10)</label>
+                <div class="checkbox-list">
+                    <label class="checkbox-item">
+                        <input type="checkbox" class="calc-trigger" value="21.00">
+                        <span>Less than 5 items</span>
+                        <span class="cost-badge">+$21.00</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" class="calc-trigger" value="10.50">
+                        <span>Quantity 5-9 items</span>
+                        <span class="cost-badge">+$10.50</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" class="calc-trigger" value="100.00">
+                        <span>LTL Crating</span>
+                        <span class="cost-badge">+$100.00</span>
+                    </label>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>2. Production Services (Internal)</legend>
+            <div class="section-note">Costs derived from "Parts+Labor Cost" production data.</div>
+            <div class="checkbox-list" id="productionList">
+                </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>3. Component Materials</legend>
+            <div class="section-note">Costs derived from "Unit Cost" in catalog.</div>
+            <div class="checkbox-list" id="componentList">
+                </div>
+        </fieldset>
+
+    </div>
+
+    <div class="sticky-footer">
+        <div>
+            <div class="total-label">Total Internal Cost</div>
+            <div style="font-size: 0.8rem; opacity: 0.8;">(Slab + Production + Components)</div>
+        </div>
+        <div class="total-amount" id="finalTotal">$0.00</div>
+    </div>
+</div>
+
+<script>
+    // --- DATABASE ---
+    
+    // Structure: Style -> Height -> Type(Core/Thick) -> Width -> [JobLot, Pallet, Drop]
+    // Index 0: Job Lot, Index 1: Pallet, Index 2: Drop
+    // Null indicates N/A in the PDF
+    const pricingDB = {
+        "molded": {
+            "68": {
+                "138HC": { // 1-3/8 Hollow Core
+                    "1/6": [41.49, 40.02, 35.57], "2/0": [43.63, 42.09, 34.11], 
+                    "2/4": [46.66, 45.01, 39.62], "2/6": [47.65, 45.96, 40.40],
+                    "2/8": [49.79, 48.04, 42.09], "3/0": [52.83, 50.96, 44.47]
+                },
+                "138SC": { // 1-3/8 Solid Core
+                    "1/6": [89.07, 85.93, 69.89], "2/0": [89.07, 85.93, 69.89],
+                    "2/4": [93.83, 90.52, 73.63], "2/6": [93.83, 90.52, 73.63],
+                    "2/8": [97.39, 93.95, 76.42], "3/0": [100.82, 97.26, 79.12]
+                },
+                "134SC": { // 1-3/4 Solid Core
+                    "1/6": [95.20, 91.84, 74.69], "2/0": [95.20, 91.84, 74.69],
+                    "2/4": [99.57, 96.06, 78.14], "2/6": [99.57, 96.06, 78.14],
+                    "2/8": [102.84, 99.21, 80.69], "3/0": [106.00, 102.26, 83.17]
+                }
+            },
+            "70": {
+                "138HC": {
+                    "1/6": [66.63, 64.28, 57.55], "2/0": [68.85, 66.42, 59.29],
+                    "2/4": [71.98, 69.44, 61.74], "2/6": [72.99, 70.41, 62.54],
+                    "2/8": [75.21, 72.55, 64.28], "3/0": [78.35, 75.59, 66.74]
+                },
+                "138SC": {
+                    "1/6": [114.77, 110.72, 90.06], "2/0": [114.77, 110.72, 90.06],
+                    "2/4": [119.63, 115.41, 93.87], "2/6": [119.63, 115.41, 93.87],
+                    "2/8": [123.27, 118.92, 96.73], "3/0": [126.77, 122.29, 99.47]
+                },
+                "134SC": {
+                    "1/6": [129.46, 124.89, 101.58], "2/0": [129.46, 124.89, 101.58],
+                    "2/4": [134.33, 129.59, 105.40], "2/6": [134.33, 129.59, 105.40],
+                    "2/8": [137.95, 133.08, 108.25], "3/0": [141.46, 136.47, 111.00]
+                }
+            },
+            "80": {
+                "138HC": {
+                    "1/6": [81.34, 78.47, 71.19], "2/0": [83.43, 80.48, 72.83],
+                    "2/4": [86.34, 83.29, 75.12], "2/6": [87.29, 84.21, 75.86],
+                    "2/8": [89.38, 86.22, 77.51], "3/0": [92.32, 89.06, 79.81]
+                },
+                "138SC": {
+                    "1/6": [126.43, 121.96, 99.20], "2/0": [126.43, 121.96, 99.20],
+                    "2/4": [130.76, 126.14, 102.60], "2/6": [130.76, 126.14, 102.60],
+                    "2/8": [133.99, 129.26, 105.14], "3/0": [137.10, 132.26, 107.58]
+                },
+                "134SC": {
+                    "1/6": [131.66, 127.01, 103.31], "2/0": [131.66, 127.01, 103.31],
+                    "2/4": [135.74, 130.95, 106.52], "2/6": [135.74, 130.95, 106.52],
+                    "2/8": [138.79, 133.89, 108.91], "3/0": [141.73, 136.73, 111.22]
+                }
+            }
+        },
+        "flushHB": {
+            "68": {
+                "138HC": {
+                    "1/6": [38.13, 36.79, 33.08], "2/0": [39.90, 38.49, 34.47],
+                    "2/4": [40.85, 39.41, 35.22], "2/6": [42.17, 40.68, 36.24],
+                    "2/8": [45.40, 43.80, 38.78], "3/0": [50.18, 48.41, 42.54],
+                    "4/0": [null, null, 74.95]
+                },
+                "138SC": {
+                    "1/6": [88.91, 85.78, 69.77], "2/0": [90.11, 86.93, 70.71],
+                    "2/4": [93.32, 90.02, 73.22], "2/6": [93.32, 90.02, 73.22],
+                    "2/8": [96.84, 93.42, 75.99], "3/0": [102.67, 99.05, 80.57],
+                    "4/0": [null, null, 121.75]
+                },
+                "134SC": {
+                    "1/6": [105.99, 102.25, 83.17], "2/0": [105.99, 102.25, 83.17],
+                    "2/4": [109.27, 105.41, 85.74], "2/6": [109.27, 105.41, 85.74],
+                    "2/8": [112.87, 108.88, 88.56], "3/0": [118.82, 114.62, 93.23],
+                    "4/0": [null, null, 134.01]
+                }
+            },
+            "70": {
+                "138HC": {
+                    "1/6": [50.28, 50.27, 50.46], // Correcting apparent PDF typo
+                    "2/0": [59.43, 57.33, 51.89], "2/4": [60.40, 58.27, 52.66],
+                    "2/6": [61.76, 59.58, 53.73], "2/8": [65.10, 62.80, 56.35],
+                    "3/0": [70.04, 67.56, 60.22], "4/0": [null, null, 91.23]
+                },
+                "138SC": {
+                    "1/6": [113.41, 109.41, 89.00], "2/0": [114.63, 110.59, 89.96],
+                    "2/4": [117.91, 113.75, 92.53], "2/6": [117.91, 113.75, 92.53],
+                    "2/8": [121.51, 117.22, 95.35], "3/0": [127.46, 122.96, 100.02],
+                    "4/0": [null, null, 142.08]
+                },
+                "134SC": {
+                    "1/6": [128.62, 124.08, 100.94], "2/0": [128.62, 124.08, 100.94],
+                    "2/4": [131.90, 127.25, 103.51], "2/6": [131.90, 127.25, 103.51],
+                    "2/8": [135.50, 130.72, 106.33], "3/0": [141.46, 136.47, 111.00],
+                    "4/0": [null, null, 151.78]
+                }
+            },
+            "80": {
+                "138HC": {
+                    "1/6": [90.78, 87.58, 78.61], "2/0": [92.50, 89.24, 79.95],
+                    "2/4": [93.41, 90.12, 80.67], "2/6": [94.68, 91.34, 81.66],
+                    "2/8": [97.82, 94.36, 84.12], "3/0": [102.45, 98.84, 87.76],
+                    "4/0": [null, null, 116.82]
+                },
+                "138SC": {
+                    "1/6": [149.39, 144.12, 117.23], "2/0": [150.61, 145.29, 118.18],
+                    "2/4": [153.89, 148.46, 120.76], "2/6": [153.89, 148.46, 120.76],
+                    "2/8": [157.49, 151.93, 123.58], "3/0": [163.44, 157.67, 128.25],
+                    "4/0": [null, null, 170.32]
+                },
+                "134SC": {
+                    "1/6": [164.60, 158.79, 129.16], "2/0": [164.60, 158.79, 129.16],
+                    "2/4": [167.88, 161.95, 131.74], "2/6": [167.88, 161.95, 131.74],
+                    "2/8": [171.48, 165.42, 134.56], "3/0": [177.43, 171.16, 139.23],
+                    "4/0": [null, null, 180.00]
+                }
+            }
+        },
+        "flushBirch": {
+            "68": {
+                "138HC": {
+                    "1/6": [null, 49.55, 40.31], "2/0": [null, 51.66, 42.01],
+                    "2/4": [null, 56.20, 45.71], "2/6": [null, 58.68, 47.74],
+                    "2/8": [null, 60.25, 49.01], "3/0": [null, 64.45, 52.42],
+                    "4/0": [null, null, 92.36]
+                },
+                "138SC": {
+                    "1/6": [null, 98.99, 80.52], "2/0": [null, 100.51, 81.75],
+                    "2/4": [null, 107.01, 87.04], "2/6": [null, 107.01, 87.04],
+                    "2/8": [null, 108.51, 88.26], "3/0": [null, 112.51, 91.52],
+                    "4/0": [null, null, 124.05]
+                },
+                "134HC": { // Note: 1-3/4 HC exists for Birch
+                    "1/6": [null, 126.00, 103.93], "2/0": [null, 129.16, 106.49],
+                    "2/4": [null, 130.76, 107.80], "2/6": [null, 132.75, 109.42],
+                    "2/8": [null, 136.92, 112.80], "3/0": [null, 146.01, 120.21],
+                    "4/0": [null, null, 172.86]
+                },
+                "134SC": {
+                    "1/6": [null, 108.35, 88.14], "2/0": [null, 111.52, 90.71],
+                    "2/4": [null, 113.12, 92.01], "2/6": [null, 115.11, 93.63],
+                    "2/8": [null, 119.27, 97.01], "3/0": [null, 128.36, 104.42],
+                    "4/0": [null, null, 157.07]
+                }
+            },
+            "70": {
+                "138HC": {
+                    "1/6": [null, 105.85, 57.63], "2/0": [null, 107.88, 59.39],
+                    "2/4": [null, 112.28, 63.20], "2/6": [null, 114.68, 65.29],
+                    "2/8": [null, 116.20, 66.61], "3/0": [null, 120.26, 70.13],
+                    "4/0": [null, null, 111.36]
+                },
+                "138SC": {
+                    "1/6": [null, 157.61, 99.98], "2/0": [null, 159.15, 101.23],
+                    "2/4": [null, 165.81, 106.64], "2/6": [null, 165.81, 106.64],
+                    "2/8": [null, 167.33, 107.88], "3/0": [null, 171.42, 111.20],
+                    "4/0": [null, null, 144.43]
+                },
+                "134HC": {
+                    "1/6": [null, 150.20, 123.80], "2/0": [null, 153.36, 126.37],
+                    "2/4": [null, 154.96, 127.67], "2/6": [null, 156.95, 129.28],
+                    "2/8": [null, 161.12, 132.67], "3/0": [null, 170.21, 140.07],
+                    "4/0": [null, null, 192.74]
+                },
+                "134SC": {
+                    "1/6": [null, 130.20, 105.91], "2/0": [null, 133.36, 108.47],
+                    "2/4": [null, 134.96, 109.78], "2/6": [null, 136.95, 111.39],
+                    "2/8": [null, 141.12, 114.78], "3/0": [null, 150.21, 122.18],
+                    "4/0": [null, null, 174.84]
+                }
+            },
+            "80": {
+                 "138HC": {
+                    "1/6": [null, 105.85, 86.09], "2/0": [null, 107.88, 87.75],
+                    "2/4": [null, 112.28, 91.33], "2/6": [null, 114.68, 93.28],
+                    "2/8": [null, 116.20, 94.52], "3/0": [null, 120.26, 97.82],
+                    "4/0": [null, null, 136.46]
+                },
+                "138SC": {
+                    "1/6": [null, 157.61, 128.20], "2/0": [null, 159.15, 129.46],
+                    "2/4": [null, 165.81, 134.87], "2/6": [null, 165.81, 134.87],
+                    "2/8": [null, 167.33, 136.11], "3/0": [null, 171.42, 139.43],
+                    "4/0": [null, null, 172.66]
+                },
+                "134HC": {
+                    "1/6": [null, 188.44, 155.19], "2/0": [null, 191.60, 157.76],
+                    "2/4": [null, 193.20, 159.06], "2/6": [null, 195.18, 160.67],
+                    "2/8": [null, 199.34, 164.06], "3/0": [null, 208.45, 171.46],
+                    "4/0": [null, null, 224.13]
+                },
+                "134SC": {
+                    "1/6": [null, 164.91, 134.14], "2/0": [null, 168.07, 136.71],
+                    "2/4": [null, 169.67, 138.01], "2/6": [null, 171.65, 139.62],
+                    "2/8": [null, 175.81, 143.01], "3/0": [null, 184.92, 150.41],
+                    "4/0": [null, null, 203.07]
+                }
+            }
+        }
+    };
+
+    // Labels for Type mapping
+    const typeLabels = {
+        "138HC": "1-3/8\" Hollow Core",
+        "138SC": "1-3/8\" Solid Core",
+        "134SC": "1-3/4\" Solid Core",
+        "134HC": "1-3/4\" Hollow Core"
+    };
+
+    // Production Adders (Parts + Labor Cost)
+    const productionAdders = [
+        { name: "Prehang 6'8 Single (Std 4-9/16)", cost: 25.00 },
+        { name: "Prehang 8'0 Single (Std 4-9/16)", cost: 32.00 },
+        { name: "Upcharge to Interior 6-9/16 Jamb", cost: 20.00 },
+        { name: "Prehang 6'8 Double Ball Catch", cost: 55.00 },
+        { name: "Prehang 6'8 Double Flush Bolt", cost: 85.00 },
+        { name: "Prehang 8'0 Double Flush Bolt", cost: 95.00 },
+        { name: "Prehang 8'0 Double Ball Catch", cost: 50.00 },
+        { name: "Upcharge to Primed FJ Jamb", cost: 5.00 },
+        { name: "Prehang Ext 6'8 Single", cost: 125.00 },
+        { name: "Prehang Ext 8'0 Single", cost: 150.00 },
+        { name: "Prehang Ext 6'8 Double", cost: 320.00 },
+        { name: "Prehang Ext 8'0 Double", cost: 340.00 },
+        { name: "Slab Cutdown", cost: 10.00 },
+        { name: "Hinge Prep (Per Slab)", cost: 30.00 },
+        { name: "Bore Prep (Per Slab)", cost: 20.00 },
+        { name: "Dutch Door Mod", cost: 100.00 },
+        { name: "Casing Pre Applied", cost: 5.00 },
+        { name: "Precut Casing Adder", cost: 5.00 }
+    ];
+
+    // Component Adders (Unit Cost)
+    const componentAdders = [
+        { name: "Flat Jamb 6-8 4-5/8 FJ Raw Pine (W/Stop)", cost: 11.06 },
+        { name: "Flat Jamb 8-0 4-5/8 FJ Raw Pine (W/Stop)", cost: 12.61 },
+        { name: "Flat Jamb 6-8 4-7/8 FJ Primed", cost: 10.80 },
+        { name: "Flat Jamb 8-0 6-9/16 FJ Pine", cost: 14.56 },
+        { name: "Flat Jamb 6-5/8 x 8-0 Primed (Pair)", cost: 18.14 },
+        { name: "Stop 3/8 x 1-1/4 x 14' Primed", cost: 3.51 },
+        { name: "Stop 3/8 x 1-1/4 x 80-7/8 (Raw)", cost: 0.89 },
+        { name: "Stop 3/8 x 1-1/4 x 96-7/8 (Raw)", cost: 0.98 },
+        { name: "LF WM887 3/8x1-1/4 Stop FJ Primed", cost: 0.31 }
+    ];
+
+    // --- APP LOGIC ---
+
+    function init() {
+        // Render checkboxes
+        renderCheckboxes(productionAdders, 'productionList');
+        renderCheckboxes(componentAdders, 'componentList');
+        
+        // Add event listeners for dynamic checkboxes
+        document.querySelectorAll('.calc-trigger').forEach(el => {
+            el.addEventListener('change', calculate);
+        });
+
+        // Initialize Dropdowns
+        updateConfig();
+    }
+
+    function renderCheckboxes(data, containerId) {
+        const container = document.getElementById(containerId);
+        data.forEach(item => {
+            const label = document.createElement('label');
+            label.className = 'checkbox-item';
+            label.innerHTML = `
+                <input type="checkbox" class="calc-trigger" value="${item.cost}">
+                <span>${item.name}</span>
+                <span class="cost-badge">$${item.cost.toFixed(2)}</span>
+            `;
+            container.appendChild(label);
+        });
+    }
+
+    function updateConfig() {
+        const style = document.getElementById('doorStyle').value;
+        const height = document.getElementById('doorHeight').value;
+        const typeSelect = document.getElementById('doorType');
+        const widthSelect = document.getElementById('doorWidth');
+
+        // Save current selections to restore if possible
+        const currentType = typeSelect.value;
+        const currentWidth = widthSelect.value;
+
+        // 1. Populate Types (Core/Thick) based on available data
+        typeSelect.innerHTML = "";
+        const availableTypes = pricingDB[style][height];
+        
+        if (availableTypes) {
+            Object.keys(availableTypes).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.text = typeLabels[key] || key;
+                typeSelect.add(opt);
+            });
+            if (availableTypes[currentType]) typeSelect.value = currentType;
+        } else {
+            const opt = document.createElement('option');
+            opt.text = "None Available";
+            typeSelect.add(opt);
+        }
+
+        // 2. Populate Widths based on selected Type
+        widthSelect.innerHTML = "";
+        const selectedType = typeSelect.value;
+        if (availableTypes && availableTypes[selectedType]) {
+            const sizes = availableTypes[selectedType];
+            Object.keys(sizes).forEach(size => {
+                const opt = document.createElement('option');
+                opt.value = size;
+                opt.text = size;
+                widthSelect.add(opt);
+            });
+            if (sizes[currentWidth]) widthSelect.value = currentWidth;
+        }
+
+        // Handle Drop Ship Section Visibility
+        const purchaseType = document.getElementById('purchaseType').value;
+        const dropSection = document.getElementById('dropShipAdders');
+        if (purchaseType === 'drop') {
+            dropSection.classList.remove('hidden');
+        } else {
+            dropSection.classList.add('hidden');
+            // Uncheck drop ship adders if hidden
+            dropSection.querySelectorAll('input').forEach(i => i.checked = false);
+        }
+
+        calculate();
+    }
+
+    function calculate() {
+        const style = document.getElementById('doorStyle').value;
+        const height = document.getElementById('doorHeight').value;
+        const type = document.getElementById('doorType').value;
+        const width = document.getElementById('doorWidth').value;
+        const tier = document.getElementById('purchaseType').value;
+
+        // Determine price index (0=JobLot, 1=Pallet, 2=Drop)
+        const tierIndex = (tier === 'jobLot') ? 0 : (tier === 'pallet') ? 1 : 2;
+
+        let basePrice = 0;
+        let validPrice = true;
+
+        // Fetch Base Price
+        try {
+            const priceArray = pricingDB[style][height][type][width];
+            const rawPrice = priceArray[tierIndex];
+            
+            if (rawPrice === null) {
+                validPrice = false;
+            } else {
+                basePrice = rawPrice;
+            }
+        } catch (e) {
+            validPrice = false;
+        }
+
+        // Update Base Price UI
+        const baseDisplay = document.getElementById('baseSlabCost');
+        const alertBox = document.getElementById('priceAlert');
+        
+        if (validPrice) {
+            baseDisplay.innerText = "$" + basePrice.toFixed(2);
+            baseDisplay.style.color = "var(--accent)";
+            alertBox.style.display = "none";
+        } else {
+            baseDisplay.innerText = "N/A";
+            baseDisplay.style.color = "#ccc";
+            alertBox.style.display = "block";
+            basePrice = 0; // Don't add to total
+        }
+
+        // Sum Adders
+        let addersTotal = 0;
+        document.querySelectorAll('.calc-trigger:checked').forEach(box => {
+            addersTotal += parseFloat(box.value);
+        });
+
+        // Final Total
+        const finalTotal = basePrice + addersTotal;
+        document.getElementById('finalTotal').innerText = "$" + finalTotal.toFixed(2);
+    }
+
+    // Run
+    init();
+
+</script>
+
+</body>
+</html>
