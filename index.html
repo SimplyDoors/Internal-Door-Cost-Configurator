@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SimplyDoors Cost Configurator (Internal)</title>
+    <title>SimplyDoors Costing Tool (Purchaser View)</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -11,9 +11,10 @@
             --accent: #2980b9;
             --bg: #f5f7fa;
             --border: #dcdde1;
-            --success: #27ae60;
-            --danger: #c0392b;
+            --cost-color: #2c3e50;  /* Dark Blue for Cost */
+            --price-color: #27ae60; /* Green for Price */
             --warning: #f39c12;
+            --margin-ui: #d35400;   /* Orange for Margin inputs */
         }
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -21,7 +22,7 @@
             color: #333;
             margin: 0;
             padding: 20px;
-            padding-top: 40px; /* Extra space for the floater on small screens */
+            padding-top: 40px;
         }
         .container {
             max-width: 1000px;
@@ -33,43 +34,67 @@
             padding-bottom: 20px;
         }
         
-        /* --- NEW FLOATING COST WIDGET --- */
+        /* FLOATING COST WIDGET (Purchaser Focus) */
         .cost-floater {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: var(--primary);
-            color: white;
+            background: white;
+            color: var(--primary);
             padding: 15px 25px;
-            border-radius: 50px; /* Modern "Pill" shape */
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
             z-index: 9999;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            border: 2px solid rgba(255,255,255,0.1);
+            border: 2px solid var(--primary);
+            min-width: 220px;
             transition: transform 0.2s ease;
         }
-        .cost-floater:hover {
-            transform: scale(1.02);
-        }
-        .cost-floater .label {
-            font-size: 0.75rem;
+        .cost-floater:hover { transform: scale(1.02); }
+        
+        .floater-header {
+            font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            opacity: 0.8;
+            opacity: 0.7;
             margin-bottom: 2px;
+            text-align: right;
+            color: #666;
         }
-        .cost-floater .amount {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #2ecc71; /* Bright green */
+        .main-number {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--cost-color); /* Internal Cost is Dominant */
             line-height: 1;
-            font-family: monospace; /* Monospace to prevent jumping numbers */
+            font-family: monospace;
+        }
+        .secondary-details {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #eee;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .sell-price {
+            color: var(--price-color);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .profit-display {
+            font-size: 0.8rem; 
+            color: #999; 
+            margin-top: 5px;
+            width: 100%;
+            text-align: right;
         }
 
         header {
-            background: var(--secondary);
+            background: var(--primary);
             color: white;
             padding: 30px 20px;
             text-align: center;
@@ -86,12 +111,19 @@
             margin-bottom: 25px;
             background: #fff;
         }
+        /* Margin Section Styling */
+        fieldset.margin-section {
+            border: 2px solid var(--margin-ui);
+            background-color: #fffbf8;
+        }
+        
         legend {
             font-weight: bold;
             color: var(--accent);
             padding: 0 10px;
             font-size: 1.1rem;
         }
+        legend.margin-legend { color: var(--margin-ui); }
 
         .grid-3 {
             display: grid;
@@ -109,7 +141,7 @@
             font-size: 1rem;
             background-color: #fff;
         }
-        select:focus { border-color: var(--accent); outline: none; }
+        select:focus, input:focus { border-color: var(--accent); outline: none; }
 
         .checkbox-list {
             display: grid;
@@ -155,14 +187,17 @@
             font-style: italic;
         }
 
-        /* Mobile Adjustment: On phones, move total to bottom right so it doesn't cover inputs */
+        /* Mobile Adjustment */
         @media (max-width: 600px) {
             .cost-floater {
                 top: auto;
                 bottom: 20px;
                 right: 20px;
+                left: 20px;
+                align-items: center;
             }
-            body { padding-bottom: 80px; } /* Prevent footer from blocking content */
+            .floater-header { text-align: center; }
+            body { padding-bottom: 150px; }
         }
 
         .hidden { display: none; }
@@ -171,27 +206,60 @@
 <body>
 
 <div class="cost-floater">
-    <div class="label">Total Unit Cost</div>
-    <div class="amount" id="floatingTotal">$0.00</div>
+    <div class="floater-header">Total Internal Cost</div>
+    <div class="main-number" id="floatingInternalCost">$0.00</div>
+    
+    <div class="secondary-details">
+        <span>Sell Price:</span>
+        <span class="sell-price" id="floatingCustomerPrice">$0.00</span>
+    </div>
+    <div class="profit-display">
+        Profit: <span id="floatingProfit">$0.00</span>
+    </div>
 </div>
 
 <div class="container">
     <header>
-        <h1>Internal Door Cost Configurator</h1>
-        <p>Woodgrain Pricing & Production Adders</p>
+        <h1>SimplyDoors Costing Tool</h1>
+        <p>Purchaser View: Woodgrain & Simpson Data</p>
     </header>
 
     <div class="calculator-body">
         
+        <fieldset class="margin-section">
+            <legend class="margin-legend">1. Margin Configuration</legend>
+            <div class="grid-3">
+                <div class="form-group">
+                    <label for="marginPercent">Target Gross Margin (%)</label>
+                    <input type="number" id="marginPercent" value="30" step="1" min="0" max="99" onchange="calculate()">
+                    <div class="section-note" style="margin-top:5px;">Price = Cost / (1 - Margin%)</div>
+                </div>
+                <div class="form-group">
+                    <label>Markup Equivalent</label>
+                    <div id="calculatedMarkup" style="font-weight:bold; color:var(--margin-ui); font-size:1.2rem; padding-top:8px;">1.43x</div>
+                </div>
+            </div>
+        </fieldset>
+
         <fieldset>
-            <legend>1. Slab Configuration</legend>
+            <legend>2. Slab Configuration</legend>
             <div class="grid-3">
                 <div class="form-group">
                     <label for="doorStyle">Style Family</label>
                     <select id="doorStyle" onchange="updateConfig()">
-                        <option value="molded">Molded Raised Panel</option>
-                        <option value="flushHB">Flush Hardboard (Primed)</option>
-                        <option value="flushBirch">Flush Birch</option>
+                        <optgroup label="Woodgrain (Standard)">
+                            <option value="molded">Molded Raised Panel</option>
+                            <option value="flushHB">Flush Hardboard (Primed)</option>
+                            <option value="flushBirch">Flush Birch</option>
+                        </optgroup>
+                        <optgroup label="Simpson Rift White Oak (Premium)">
+                            <option value="rift720">#720 Shaker 1-Panel (Rift Oak)</option>
+                            <option value="rift782">#782 Shaker 2-Panel (Rift Oak)</option>
+                            <option value="rift730">#730 Shaker 3-Panel (Rift Oak)</option>
+                            <option value="rift755">#755 Shaker 5-Panel (Rift Oak)</option>
+                            <option value="rift1501Clear">#1501 1-Lite Clear Ovolo (Rift Oak)</option>
+                            <option value="rift1501Satin">#1501 1-Lite Satin Etch (Rift Oak)</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="form-group">
@@ -213,7 +281,7 @@
                 <div class="form-group">
                     <label for="purchaseType">Purchasing Tier</label>
                     <select id="purchaseType" onchange="calculate()">
-                        <option value="jobLot">Warehouse Job Lot (Standard)</option>
+                        <option value="jobLot">Standard / Job Lot</option>
                         <option value="pallet">Warehouse Full Pallet</option>
                         <option value="drop">Drop Shipment</option>
                     </select>
@@ -225,8 +293,8 @@
                 </div>
                 <div class="form-group">
                     <label>Base Slab Cost</label>
-                    <div id="baseSlabCost" style="font-size: 1.2rem; font-weight: bold; color: var(--secondary); padding-top: 5px;">$0.00</div>
-                    <div id="priceAlert" class="alert">Price N/A for this Tier</div>
+                    <div id="baseSlabCost" style="font-size: 1.2rem; font-weight: bold; color: var(--cost-color); padding-top: 5px;">$0.00</div>
+                    <div id="priceAlert" class="alert">Price N/A for this Tier/Size</div>
                 </div>
             </div>
 
@@ -253,14 +321,14 @@
         </fieldset>
 
         <fieldset>
-            <legend>2. Production Services (Internal)</legend>
+            <legend>3. Production Services (Internal)</legend>
             <div class="section-note">Costs derived from "Parts+Labor Cost" production data.</div>
             <div class="checkbox-list" id="productionList">
                 </div>
         </fieldset>
 
         <fieldset>
-            <legend>3. Component Materials</legend>
+            <legend>4. Component Materials</legend>
             <div class="section-note">Costs derived from "Unit Cost" in catalog.</div>
             <div class="checkbox-list" id="componentList">
                 </div>
@@ -270,204 +338,115 @@
 </div>
 
 <script>
-    // --- DATABASE (Woodgrain & Production Data) ---
-    // Structure: Style -> Height -> Type(Core/Thick) -> Width -> [JobLot, Pallet, Drop]
-    // Index 0: Job Lot, Index 1: Pallet, Index 2: Drop
+    // --- DATABASE ---
+    
+    // Structure: Style -> Height -> Type -> Width -> [JobLot, Pallet, Drop]
+    // Note: Simpson Rift Oak data is the same for all tiers.
+    
     const pricingDB = {
+        // --- WOODGRAIN DATA ---
         "molded": {
             "68": {
-                "138HC": {
-                    "1/6": [41.49, 40.02, 35.57], "2/0": [43.63, 42.09, 34.11], 
-                    "2/4": [46.66, 45.01, 39.62], "2/6": [47.65, 45.96, 40.40],
-                    "2/8": [49.79, 48.04, 42.09], "3/0": [52.83, 50.96, 44.47]
-                },
-                "138SC": {
-                    "1/6": [89.07, 85.93, 69.89], "2/0": [89.07, 85.93, 69.89],
-                    "2/4": [93.83, 90.52, 73.63], "2/6": [93.83, 90.52, 73.63],
-                    "2/8": [97.39, 93.95, 76.42], "3/0": [100.82, 97.26, 79.12]
-                },
-                "134SC": {
-                    "1/6": [95.20, 91.84, 74.69], "2/0": [95.20, 91.84, 74.69],
-                    "2/4": [99.57, 96.06, 78.14], "2/6": [99.57, 96.06, 78.14],
-                    "2/8": [102.84, 99.21, 80.69], "3/0": [106.00, 102.26, 83.17]
-                }
+                "138HC": { "1/6": [41.49, 40.02, 35.57], "2/0": [43.63, 42.09, 34.11], "2/4": [46.66, 45.01, 39.62], "2/6": [47.65, 45.96, 40.40], "2/8": [49.79, 48.04, 42.09], "3/0": [52.83, 50.96, 44.47] },
+                "138SC": { "1/6": [89.07, 85.93, 69.89], "2/0": [89.07, 85.93, 69.89], "2/4": [93.83, 90.52, 73.63], "2/6": [93.83, 90.52, 73.63], "2/8": [97.39, 93.95, 76.42], "3/0": [100.82, 97.26, 79.12] },
+                "134SC": { "1/6": [95.20, 91.84, 74.69], "2/0": [95.20, 91.84, 74.69], "2/4": [99.57, 96.06, 78.14], "2/6": [99.57, 96.06, 78.14], "2/8": [102.84, 99.21, 80.69], "3/0": [106.00, 102.26, 83.17] }
             },
             "70": {
-                "138HC": {
-                    "1/6": [66.63, 64.28, 57.55], "2/0": [68.85, 66.42, 59.29],
-                    "2/4": [71.98, 69.44, 61.74], "2/6": [72.99, 70.41, 62.54],
-                    "2/8": [75.21, 72.55, 64.28], "3/0": [78.35, 75.59, 66.74]
-                },
-                "138SC": {
-                    "1/6": [114.77, 110.72, 90.06], "2/0": [114.77, 110.72, 90.06],
-                    "2/4": [119.63, 115.41, 93.87], "2/6": [119.63, 115.41, 93.87],
-                    "2/8": [123.27, 118.92, 96.73], "3/0": [126.77, 122.29, 99.47]
-                },
-                "134SC": {
-                    "1/6": [129.46, 124.89, 101.58], "2/0": [129.46, 124.89, 101.58],
-                    "2/4": [134.33, 129.59, 105.40], "2/6": [134.33, 129.59, 105.40],
-                    "2/8": [137.95, 133.08, 108.25], "3/0": [141.46, 136.47, 111.00]
-                }
+                "138HC": { "1/6": [66.63, 64.28, 57.55], "2/0": [68.85, 66.42, 59.29], "2/4": [71.98, 69.44, 61.74], "2/6": [72.99, 70.41, 62.54], "2/8": [75.21, 72.55, 64.28], "3/0": [78.35, 75.59, 66.74] },
+                "138SC": { "1/6": [114.77, 110.72, 90.06], "2/0": [114.77, 110.72, 90.06], "2/4": [119.63, 115.41, 93.87], "2/6": [119.63, 115.41, 93.87], "2/8": [123.27, 118.92, 96.73], "3/0": [126.77, 122.29, 99.47] },
+                "134SC": { "1/6": [129.46, 124.89, 101.58], "2/0": [129.46, 124.89, 101.58], "2/4": [134.33, 129.59, 105.40], "2/6": [134.33, 129.59, 105.40], "2/8": [137.95, 133.08, 108.25], "3/0": [141.46, 136.47, 111.00] }
             },
             "80": {
-                "138HC": {
-                    "1/6": [81.34, 78.47, 71.19], "2/0": [83.43, 80.48, 72.83],
-                    "2/4": [86.34, 83.29, 75.12], "2/6": [87.29, 84.21, 75.86],
-                    "2/8": [89.38, 86.22, 77.51], "3/0": [92.32, 89.06, 79.81]
-                },
-                "138SC": {
-                    "1/6": [126.43, 121.96, 99.20], "2/0": [126.43, 121.96, 99.20],
-                    "2/4": [130.76, 126.14, 102.60], "2/6": [130.76, 126.14, 102.60],
-                    "2/8": [133.99, 129.26, 105.14], "3/0": [137.10, 132.26, 107.58]
-                },
-                "134SC": {
-                    "1/6": [131.66, 127.01, 103.31], "2/0": [131.66, 127.01, 103.31],
-                    "2/4": [135.74, 130.95, 106.52], "2/6": [135.74, 130.95, 106.52],
-                    "2/8": [138.79, 133.89, 108.91], "3/0": [141.73, 136.73, 111.22]
-                }
+                "138HC": { "1/6": [81.34, 78.47, 71.19], "2/0": [83.43, 80.48, 72.83], "2/4": [86.34, 83.29, 75.12], "2/6": [87.29, 84.21, 75.86], "2/8": [89.38, 86.22, 77.51], "3/0": [92.32, 89.06, 79.81] },
+                "138SC": { "1/6": [126.43, 121.96, 99.20], "2/0": [126.43, 121.96, 99.20], "2/4": [130.76, 126.14, 102.60], "2/6": [130.76, 126.14, 102.60], "2/8": [133.99, 129.26, 105.14], "3/0": [137.10, 132.26, 107.58] },
+                "134SC": { "1/6": [131.66, 127.01, 103.31], "2/0": [131.66, 127.01, 103.31], "2/4": [135.74, 130.95, 106.52], "2/6": [135.74, 130.95, 106.52], "2/8": [138.79, 133.89, 108.91], "3/0": [141.73, 136.73, 111.22] }
             }
         },
         "flushHB": {
             "68": {
-                "138HC": {
-                    "1/6": [38.13, 36.79, 33.08], "2/0": [39.90, 38.49, 34.47],
-                    "2/4": [40.85, 39.41, 35.22], "2/6": [42.17, 40.68, 36.24],
-                    "2/8": [45.40, 43.80, 38.78], "3/0": [50.18, 48.41, 42.54],
-                    "4/0": [null, null, 74.95]
-                },
-                "138SC": {
-                    "1/6": [88.91, 85.78, 69.77], "2/0": [90.11, 86.93, 70.71],
-                    "2/4": [93.32, 90.02, 73.22], "2/6": [93.32, 90.02, 73.22],
-                    "2/8": [96.84, 93.42, 75.99], "3/0": [102.67, 99.05, 80.57],
-                    "4/0": [null, null, 121.75]
-                },
-                "134SC": {
-                    "1/6": [105.99, 102.25, 83.17], "2/0": [105.99, 102.25, 83.17],
-                    "2/4": [109.27, 105.41, 85.74], "2/6": [109.27, 105.41, 85.74],
-                    "2/8": [112.87, 108.88, 88.56], "3/0": [118.82, 114.62, 93.23],
-                    "4/0": [null, null, 134.01]
-                }
+                "138HC": { "1/6": [38.13, 36.79, 33.08], "2/0": [39.90, 38.49, 34.47], "2/4": [40.85, 39.41, 35.22], "2/6": [42.17, 40.68, 36.24], "2/8": [45.40, 43.80, 38.78], "3/0": [50.18, 48.41, 42.54], "4/0": [null, null, 74.95] },
+                "138SC": { "1/6": [88.91, 85.78, 69.77], "2/0": [90.11, 86.93, 70.71], "2/4": [93.32, 90.02, 73.22], "2/6": [93.32, 90.02, 73.22], "2/8": [96.84, 93.42, 75.99], "3/0": [102.67, 99.05, 80.57], "4/0": [null, null, 121.75] },
+                "134SC": { "1/6": [105.99, 102.25, 83.17], "2/0": [105.99, 102.25, 83.17], "2/4": [109.27, 105.41, 85.74], "2/6": [109.27, 105.41, 85.74], "2/8": [112.87, 108.88, 88.56], "3/0": [118.82, 114.62, 93.23], "4/0": [null, null, 134.01] }
             },
             "70": {
-                "138HC": {
-                    "1/6": [50.28, 50.27, 50.46],
-                    "2/0": [59.43, 57.33, 51.89], "2/4": [60.40, 58.27, 52.66],
-                    "2/6": [61.76, 59.58, 53.73], "2/8": [65.10, 62.80, 56.35],
-                    "3/0": [70.04, 67.56, 60.22], "4/0": [null, null, 91.23]
-                },
-                "138SC": {
-                    "1/6": [113.41, 109.41, 89.00], "2/0": [114.63, 110.59, 89.96],
-                    "2/4": [117.91, 113.75, 92.53], "2/6": [117.91, 113.75, 92.53],
-                    "2/8": [121.51, 117.22, 95.35], "3/0": [127.46, 122.96, 100.02],
-                    "4/0": [null, null, 142.08]
-                },
-                "134SC": {
-                    "1/6": [128.62, 124.08, 100.94], "2/0": [128.62, 124.08, 100.94],
-                    "2/4": [131.90, 127.25, 103.51], "2/6": [131.90, 127.25, 103.51],
-                    "2/8": [135.50, 130.72, 106.33], "3/0": [141.46, 136.47, 111.00],
-                    "4/0": [null, null, 151.78]
-                }
+                "138HC": { "1/6": [50.28, 50.27, 50.46], "2/0": [59.43, 57.33, 51.89], "2/4": [60.40, 58.27, 52.66], "2/6": [61.76, 59.58, 53.73], "2/8": [65.10, 62.80, 56.35], "3/0": [70.04, 67.56, 60.22], "4/0": [null, null, 91.23] },
+                "138SC": { "1/6": [113.41, 109.41, 89.00], "2/0": [114.63, 110.59, 89.96], "2/4": [117.91, 113.75, 92.53], "2/6": [117.91, 113.75, 92.53], "2/8": [121.51, 117.22, 95.35], "3/0": [127.46, 122.96, 100.02], "4/0": [null, null, 142.08] },
+                "134SC": { "1/6": [128.62, 124.08, 100.94], "2/0": [128.62, 124.08, 100.94], "2/4": [131.90, 127.25, 103.51], "2/6": [131.90, 127.25, 103.51], "2/8": [135.50, 130.72, 106.33], "3/0": [141.46, 136.47, 111.00], "4/0": [null, null, 151.78] }
             },
             "80": {
-                "138HC": {
-                    "1/6": [90.78, 87.58, 78.61], "2/0": [92.50, 89.24, 79.95],
-                    "2/4": [93.41, 90.12, 80.67], "2/6": [94.68, 91.34, 81.66],
-                    "2/8": [97.82, 94.36, 84.12], "3/0": [102.45, 98.84, 87.76],
-                    "4/0": [null, null, 116.82]
-                },
-                "138SC": {
-                    "1/6": [149.39, 144.12, 117.23], "2/0": [150.61, 145.29, 118.18],
-                    "2/4": [153.89, 148.46, 120.76], "2/6": [153.89, 148.46, 120.76],
-                    "2/8": [157.49, 151.93, 123.58], "3/0": [163.44, 157.67, 128.25],
-                    "4/0": [null, null, 170.32]
-                },
-                "134SC": {
-                    "1/6": [164.60, 158.79, 129.16], "2/0": [164.60, 158.79, 129.16],
-                    "2/4": [167.88, 161.95, 131.74], "2/6": [167.88, 161.95, 131.74],
-                    "2/8": [171.48, 165.42, 134.56], "3/0": [177.43, 171.16, 139.23],
-                    "4/0": [null, null, 180.00]
-                }
+                "138HC": { "1/6": [90.78, 87.58, 78.61], "2/0": [92.50, 89.24, 79.95], "2/4": [93.41, 90.12, 80.67], "2/6": [94.68, 91.34, 81.66], "2/8": [97.82, 94.36, 84.12], "3/0": [102.45, 98.84, 87.76], "4/0": [null, null, 116.82] },
+                "138SC": { "1/6": [149.39, 144.12, 117.23], "2/0": [150.61, 145.29, 118.18], "2/4": [153.89, 148.46, 120.76], "2/6": [153.89, 148.46, 120.76], "2/8": [157.49, 151.93, 123.58], "3/0": [163.44, 157.67, 128.25], "4/0": [null, null, 170.32] },
+                "134SC": { "1/6": [164.60, 158.79, 129.16], "2/0": [164.60, 158.79, 129.16], "2/4": [167.88, 161.95, 131.74], "2/6": [167.88, 161.95, 131.74], "2/8": [171.48, 165.42, 134.56], "3/0": [177.43, 171.16, 139.23], "4/0": [null, null, 180.00] }
             }
         },
         "flushBirch": {
             "68": {
-                "138HC": {
-                    "1/6": [null, 49.55, 40.31], "2/0": [null, 51.66, 42.01],
-                    "2/4": [null, 56.20, 45.71], "2/6": [null, 58.68, 47.74],
-                    "2/8": [null, 60.25, 49.01], "3/0": [null, 64.45, 52.42],
-                    "4/0": [null, null, 92.36]
-                },
-                "138SC": {
-                    "1/6": [null, 98.99, 80.52], "2/0": [null, 100.51, 81.75],
-                    "2/4": [null, 107.01, 87.04], "2/6": [null, 107.01, 87.04],
-                    "2/8": [null, 108.51, 88.26], "3/0": [null, 112.51, 91.52],
-                    "4/0": [null, null, 124.05]
-                },
-                "134HC": {
-                    "1/6": [null, 126.00, 103.93], "2/0": [null, 129.16, 106.49],
-                    "2/4": [null, 130.76, 107.80], "2/6": [null, 132.75, 109.42],
-                    "2/8": [null, 136.92, 112.80], "3/0": [null, 146.01, 120.21],
-                    "4/0": [null, null, 172.86]
-                },
-                "134SC": {
-                    "1/6": [null, 108.35, 88.14], "2/0": [null, 111.52, 90.71],
-                    "2/4": [null, 113.12, 92.01], "2/6": [null, 115.11, 93.63],
-                    "2/8": [null, 119.27, 97.01], "3/0": [null, 128.36, 104.42],
-                    "4/0": [null, null, 157.07]
-                }
+                "138HC": { "1/6": [null, 49.55, 40.31], "2/0": [null, 51.66, 42.01], "2/4": [null, 56.20, 45.71], "2/6": [null, 58.68, 47.74], "2/8": [null, 60.25, 49.01], "3/0": [null, 64.45, 52.42], "4/0": [null, null, 92.36] },
+                "138SC": { "1/6": [null, 98.99, 80.52], "2/0": [null, 100.51, 81.75], "2/4": [null, 107.01, 87.04], "2/6": [null, 107.01, 87.04], "2/8": [null, 108.51, 88.26], "3/0": [null, 112.51, 91.52], "4/0": [null, null, 124.05] },
+                "134HC": { "1/6": [null, 126.00, 103.93], "2/0": [null, 129.16, 106.49], "2/4": [null, 130.76, 107.80], "2/6": [null, 132.75, 109.42], "2/8": [null, 136.92, 112.80], "3/0": [null, 146.01, 120.21], "4/0": [null, null, 172.86] },
+                "134SC": { "1/6": [null, 108.35, 88.14], "2/0": [null, 111.52, 90.71], "2/4": [null, 113.12, 92.01], "2/6": [null, 115.11, 93.63], "2/8": [null, 119.27, 97.01], "3/0": [null, 128.36, 104.42], "4/0": [null, null, 157.07] }
             },
             "70": {
-                "138HC": {
-                    "1/6": [null, 105.85, 57.63], "2/0": [null, 107.88, 59.39],
-                    "2/4": [null, 112.28, 63.20], "2/6": [null, 114.68, 65.29],
-                    "2/8": [null, 116.20, 66.61], "3/0": [null, 120.26, 70.13],
-                    "4/0": [null, null, 111.36]
-                },
-                "138SC": {
-                    "1/6": [null, 157.61, 99.98], "2/0": [null, 159.15, 101.23],
-                    "2/4": [null, 165.81, 106.64], "2/6": [null, 165.81, 106.64],
-                    "2/8": [null, 167.33, 107.88], "3/0": [null, 171.42, 111.20],
-                    "4/0": [null, null, 144.43]
-                },
-                "134HC": {
-                    "1/6": [null, 150.20, 123.80], "2/0": [null, 153.36, 126.37],
-                    "2/4": [null, 154.96, 127.67], "2/6": [null, 156.95, 129.28],
-                    "2/8": [null, 161.12, 132.67], "3/0": [null, 170.21, 140.07],
-                    "4/0": [null, null, 192.74]
-                },
-                "134SC": {
-                    "1/6": [null, 130.20, 105.91], "2/0": [null, 133.36, 108.47],
-                    "2/4": [null, 134.96, 109.78], "2/6": [null, 136.95, 111.39],
-                    "2/8": [null, 141.12, 114.78], "3/0": [null, 150.21, 122.18],
-                    "4/0": [null, null, 174.84]
-                }
+                "138HC": { "1/6": [null, 105.85, 57.63], "2/0": [null, 107.88, 59.39], "2/4": [null, 112.28, 63.20], "2/6": [null, 114.68, 65.29], "2/8": [null, 116.20, 66.61], "3/0": [null, 120.26, 70.13], "4/0": [null, null, 111.36] },
+                "138SC": { "1/6": [null, 157.61, 99.98], "2/0": [null, 159.15, 101.23], "2/4": [null, 165.81, 106.64], "2/6": [null, 165.81, 106.64], "2/8": [null, 167.33, 107.88], "3/0": [null, 171.42, 111.20], "4/0": [null, null, 144.43] },
+                "134HC": { "1/6": [null, 150.20, 123.80], "2/0": [null, 153.36, 126.37], "2/4": [null, 154.96, 127.67], "2/6": [null, 156.95, 129.28], "2/8": [null, 161.12, 132.67], "3/0": [null, 170.21, 140.07], "4/0": [null, null, 192.74] },
+                "134SC": { "1/6": [null, 130.20, 105.91], "2/0": [null, 133.36, 108.47], "2/4": [null, 134.96, 109.78], "2/6": [null, 136.95, 111.39], "2/8": [null, 141.12, 114.78], "3/0": [null, 150.21, 122.18], "4/0": [null, null, 174.84] }
             },
             "80": {
-                 "138HC": {
-                    "1/6": [null, 105.85, 86.09], "2/0": [null, 107.88, 87.75],
-                    "2/4": [null, 112.28, 91.33], "2/6": [null, 114.68, 93.28],
-                    "2/8": [null, 116.20, 94.52], "3/0": [null, 120.26, 97.82],
-                    "4/0": [null, null, 136.46]
-                },
-                "138SC": {
-                    "1/6": [null, 157.61, 128.20], "2/0": [null, 159.15, 129.46],
-                    "2/4": [null, 165.81, 134.87], "2/6": [null, 165.81, 134.87],
-                    "2/8": [null, 167.33, 136.11], "3/0": [null, 171.42, 139.43],
-                    "4/0": [null, null, 172.66]
-                },
-                "134HC": {
-                    "1/6": [null, 188.44, 155.19], "2/0": [null, 191.60, 157.76],
-                    "2/4": [null, 193.20, 159.06], "2/6": [null, 195.18, 160.67],
-                    "2/8": [null, 199.34, 164.06], "3/0": [null, 208.45, 171.46],
-                    "4/0": [null, null, 224.13]
-                },
-                "134SC": {
-                    "1/6": [null, 164.91, 134.14], "2/0": [null, 168.07, 136.71],
-                    "2/4": [null, 169.67, 138.01], "2/6": [null, 171.65, 139.62],
-                    "2/8": [null, 175.81, 143.01], "3/0": [null, 184.92, 150.41],
-                    "4/0": [null, null, 203.07]
-                }
+                 "138HC": { "1/6": [null, 105.85, 86.09], "2/0": [null, 107.88, 87.75], "2/4": [null, 112.28, 91.33], "2/6": [null, 114.68, 93.28], "2/8": [null, 116.20, 94.52], "3/0": [null, 120.26, 97.82], "4/0": [null, null, 136.46] },
+                "138SC": { "1/6": [null, 157.61, 128.20], "2/0": [null, 159.15, 129.46], "2/4": [null, 165.81, 134.87], "2/6": [null, 165.81, 134.87], "2/8": [null, 167.33, 136.11], "3/0": [null, 171.42, 139.43], "4/0": [null, null, 172.66] },
+                "134HC": { "1/6": [null, 188.44, 155.19], "2/0": [null, 191.60, 157.76], "2/4": [null, 193.20, 159.06], "2/6": [null, 195.18, 160.67], "2/8": [null, 199.34, 164.06], "3/0": [null, 208.45, 171.46], "4/0": [null, null, 224.13] },
+                "134SC": { "1/6": [null, 164.91, 134.14], "2/0": [null, 168.07, 136.71], "2/4": [null, 169.67, 138.01], "2/6": [null, 171.65, 139.62], "2/8": [null, 175.81, 143.01], "3/0": [null, 184.92, 150.41], "4/0": [null, null, 203.07] }
             }
+        },
+        
+        // --- SIMPSON RIFT WHITE OAK DATA ---
+        "rift720": {
+            "68": { 
+                "138SR": { "1/6": [210.52, 210.52, 210.52], "2/0": [229.95, 229.95, 229.95], "2/4": [245.06, 245.06, 245.06], "2/6": [251.54, 251.54, 251.54], "2/8": [260.17, 260.17, 260.17], "2/10": [286.08, 286.08, 286.08], "3/0": [292.40, 292.40, 292.40] },
+                "20MIN": { "2/8": [1050.90, 1050.90, 1050.90], "3/0": [1050.90, 1050.90, 1050.90] }
+            },
+            "80": { 
+                "138SR": { "1/6": [234.30, 234.30, 234.30], "2/0": [258.00, 258.00, 258.00], "2/4": [275.30, 275.30, 275.30], "2/6": [281.75, 281.75, 281.75], "2/8": [292.55, 292.55, 292.55], "2/10": [301.20, 301.20, 301.20], "3/0": [305.50, 305.50, 305.50] },
+                "20MIN": { "2/8": [1213.40, 1213.40, 1213.40], "3/0": [1213.40, 1213.40, 1213.40] }
+            }
+        },
+        "rift782": {
+            "68": { 
+                "138SR": { "1/6": [219.16, 219.16, 219.16], "2/0": [236.43, 236.43, 236.43], "2/4": [253.70, 253.70, 253.70], "2/6": [260.14, 260.14, 260.14], "2/8": [268.81, 268.81, 268.81], "2/10": [277.45, 277.45, 277.45], "3/0": [283.93, 283.93, 283.93] },
+                "20MIN": { "2/8": [1073.70, 1073.70, 1073.70], "3/0": [1073.70, 1073.70, 1073.70] }
+            },
+            "80": { 
+                "138SR": { "1/6": [245.06, 245.06, 245.06], "2/0": [268.81, 268.81, 268.81], "2/4": [286.10, 286.10, 286.10], "2/6": [294.72, 294.72, 294.72], "2/8": [303.36, 303.36, 303.36], "2/10": [314.15, 314.15, 314.15], "3/0": [322.79, 322.79, 322.79] },
+                "20MIN": { "2/8": [1239.72, 1239.72, 1239.72], "3/0": [1239.72, 1239.72, 1239.72] }
+            }
+        },
+        "rift730": {
+            "68": { 
+                "138SR": { "1/6": [223.47, 223.47, 223.47], "2/0": [240.75, 240.75, 240.75], "2/4": [258.00, 258.00, 258.00], "2/6": [266.65, 266.65, 266.65], "2/8": [275.30, 275.30, 275.30], "2/10": [286.10, 286.10, 286.10], "3/0": [290.40, 290.40, 290.40] },
+                "20MIN": { "2/8": [1081.47, 1081.47, 1081.47], "3/0": [1081.47, 1081.47, 1081.47] }
+            },
+            "70": { 
+                "138SR": { "2/0": [240.75, 240.75, 240.75], "2/4": [258.00, 258.00, 258.00], "2/6": [266.65, 266.65, 266.65], "2/8": [275.29, 275.29, 275.29], "2/10": [286.10, 286.10, 286.10], "3/0": [290.40, 290.40, 290.40] },
+                "20MIN": { "2/8": [1081.47, 1081.47, 1081.47], "3/0": [1081.47, 1081.47, 1081.47] }
+            }
+        },
+        "rift755": {
+            "68": { 
+                "138SR": { "1/6": [232.10, 232.10, 232.10], "2/0": [255.86, 255.86, 255.86], "2/4": [275.30, 275.30, 275.30], "2/6": [286.08, 286.08, 286.08], "2/8": [296.90, 296.90, 296.90], "2/10": [307.70, 307.70, 307.70], "3/0": [314.15, 314.15, 314.15] },
+                "20MIN": { "2/8": [1081.47, 1081.47, 1081.47], "3/0": [1081.47, 1081.47, 1081.47] }
+            },
+            "70": { 
+                "138SR": { "2/0": [255.85, 255.85, 255.85], "2/4": [275.30, 275.30, 275.30], "2/6": [286.10, 286.10, 286.10], "2/8": [296.89, 296.89, 296.89], "2/10": [307.69, 307.69, 307.69], "3/0": [314.15, 314.15, 314.15] },
+                "20MIN": { "2/8": [1081.47, 1081.47, 1081.47], "3/0": [1081.47, 1081.47, 1081.47] }
+            }
+        },
+        "rift1501Clear": {
+            "68": { "138SR": { "2/0": [158.55, 158.55, 158.55], "2/4": [169.44, 169.44, 169.44], "2/6": [173.88, 173.88, 173.88], "2/8": [180.34, 180.34, 180.34], "2/10": [182.40, 182.40, 182.40], "3/0": [189.20, 189.20, 189.20] } },
+            "80": { "138SR": { "2/0": [163.60, 163.60, 163.60], "2/6": [175.80, 175.80, 175.80], "2/8": [187.95, 187.95, 187.95], "2/10": [190.00, 190.00, 190.00], "3/0": [198.10, 198.10, 198.10] } }
+        },
+        "rift1501Satin": {
+            "68": { "138SR": { "2/0": [163.60, 163.60, 163.60], "2/6": [175.80, 175.80, 175.80], "2/8": [187.95, 187.95, 187.95], "2/10": [190.00, 190.00, 190.00], "3/0": [198.10, 198.10, 198.10] } }
         }
     };
 
@@ -475,7 +454,9 @@
         "138HC": "1-3/8\" Hollow Core",
         "138SC": "1-3/8\" Solid Core",
         "134SC": "1-3/4\" Solid Core",
-        "134HC": "1-3/4\" Hollow Core"
+        "134HC": "1-3/4\" Hollow Core",
+        "138SR": "1-3/8\" Rift Oak Stile & Rail",
+        "20MIN": "20-Min Fire Rated (1-3/4\")"
     };
 
     const productionAdders = [
@@ -508,7 +489,10 @@
         { name: "Stop 3/8 x 1-1/4 x 14' Primed", cost: 3.51 },
         { name: "Stop 3/8 x 1-1/4 x 80-7/8 (Raw)", cost: 0.89 },
         { name: "Stop 3/8 x 1-1/4 x 96-7/8 (Raw)", cost: 0.98 },
-        { name: "LF WM887 3/8x1-1/4 Stop FJ Primed", cost: 0.31 }
+        { name: "LF WM887 3/8x1-1/4 Stop FJ Primed", cost: 0.31 },
+        { name: "Oak Jambs 4-9/16 x 97\" (Pair)", cost: 94.10 },
+        { name: "Oak Jambs 6-9/16 x 97\" (Pair)", cost: 126.90 },
+        { name: "Oak Stop 3/8 x 1-3/8 x 98\" (Each)", cost: 12.98 }
     ];
 
     // --- LOGIC ---
@@ -547,7 +531,6 @@
         const currentType = typeSelect.value;
         const currentWidth = widthSelect.value;
 
-        // 1. Types
         typeSelect.innerHTML = "";
         const availableTypes = pricingDB[style][height];
         
@@ -558,12 +541,13 @@
                 opt.text = typeLabels[key] || key;
                 typeSelect.add(opt);
             });
-            if (availableTypes[currentType]) typeSelect.value = currentType;
+            if (availableTypes[currentType]) {
+                typeSelect.value = currentType;
+            }
         } else {
-            typeSelect.add(new Option("None Available", ""));
+            typeSelect.add(new Option("Not Available in this Height", ""));
         }
 
-        // 2. Widths
         widthSelect.innerHTML = "";
         const selectedType = typeSelect.value;
         if (availableTypes && availableTypes[selectedType]) {
@@ -574,7 +558,6 @@
             if (sizes[currentWidth]) widthSelect.value = currentWidth;
         }
 
-        // Drop Ship Visibility
         const purchaseType = document.getElementById('purchaseType').value;
         const dropSection = document.getElementById('dropShipAdders');
         if (purchaseType === 'drop') {
@@ -588,6 +571,7 @@
     }
 
     function calculate() {
+        // 1. Base Cost
         const style = document.getElementById('doorStyle').value;
         const height = document.getElementById('doorHeight').value;
         const type = document.getElementById('doorType').value;
@@ -596,13 +580,13 @@
         
         const tierIndex = (tier === 'jobLot') ? 0 : (tier === 'pallet') ? 1 : 2;
 
-        let basePrice = 0;
+        let baseCost = 0;
         let validPrice = true;
 
         try {
             const rawPrice = pricingDB[style][height][type][width][tierIndex];
             if (rawPrice === null) validPrice = false;
-            else basePrice = rawPrice;
+            else baseCost = rawPrice;
         } catch (e) {
             validPrice = false;
         }
@@ -611,23 +595,52 @@
         const alertBox = document.getElementById('priceAlert');
         
         if (validPrice) {
-            baseDisplay.innerText = "$" + basePrice.toFixed(2);
-            baseDisplay.style.color = "var(--secondary)";
+            baseDisplay.innerText = "$" + baseCost.toFixed(2);
+            baseDisplay.style.color = "var(--cost-color)";
             alertBox.style.display = "none";
         } else {
             baseDisplay.innerText = "N/A";
             baseDisplay.style.color = "#ccc";
             alertBox.style.display = "block";
-            basePrice = 0;
+            baseCost = 0;
         }
 
+        // 2. Adders Cost
         let addersTotal = 0;
         document.querySelectorAll('.calc-trigger:checked').forEach(box => {
             addersTotal += parseFloat(box.value);
         });
 
-        const finalTotal = basePrice + addersTotal;
-        document.getElementById('floatingTotal').innerText = "$" + finalTotal.toFixed(2);
+        // 3. Internal Cost
+        const totalInternalCost = baseCost + addersTotal;
+
+        // 4. Margin Calculation
+        // Formula: Price = Cost / (1 - Margin%)
+        const marginInput = parseFloat(document.getElementById('marginPercent').value) || 0;
+        const marginDecimal = marginInput / 100;
+        
+        let customerPrice = 0;
+        let markupEquivalent = 0;
+
+        if (marginDecimal >= 1) {
+            // Prevent divide by zero or negative price
+            customerPrice = 0; 
+        } else {
+            customerPrice = totalInternalCost / (1 - marginDecimal);
+        }
+        
+        const profit = customerPrice - totalInternalCost;
+        
+        // Calculate Markup Equivalent for reference: (Price / Cost)
+        if (totalInternalCost > 0) {
+            markupEquivalent = customerPrice / totalInternalCost;
+        }
+
+        // 5. Update UI
+        document.getElementById('floatingInternalCost').innerText = "$" + totalInternalCost.toFixed(2);
+        document.getElementById('floatingCustomerPrice').innerText = "$" + customerPrice.toFixed(2);
+        document.getElementById('floatingProfit').innerText = "+" + "$" + profit.toFixed(2);
+        document.getElementById('calculatedMarkup').innerText = markupEquivalent.toFixed(2) + "x";
     }
 
     init();
