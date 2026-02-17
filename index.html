@@ -34,7 +34,7 @@
             padding-bottom: 20px;
         }
         
-        /* FLOATING COST WIDGET (Purchaser Focus) */
+        /* FLOATING COST WIDGET */
         .cost-floater {
             position: fixed;
             top: 20px;
@@ -49,46 +49,67 @@
             flex-direction: column;
             align-items: flex-end;
             border: 2px solid var(--primary);
-            min-width: 220px;
+            min-width: 240px;
             transition: transform 0.2s ease;
         }
         .cost-floater:hover { transform: scale(1.02); }
         
         .floater-header {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             opacity: 0.7;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
             text-align: right;
             color: #666;
+            width: 100%;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 4px;
+        }
+        .main-number-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-top: 5px;
         }
         .main-number {
             font-size: 2.2rem;
             font-weight: 800;
-            color: var(--cost-color); /* Internal Cost is Dominant */
+            color: var(--cost-color);
             line-height: 1;
             font-family: monospace;
         }
+        .slab-count-badge {
+            font-size: 0.75rem;
+            background-color: var(--accent);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-right: 10px;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+            text-transform: uppercase;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
         .secondary-details {
-            margin-top: 8px;
+            margin-top: 10px;
             padding-top: 8px;
-            border-top: 1px solid #eee;
+            border-top: 2px dashed #eee;
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
         .sell-price {
             color: var(--price-color);
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
         }
         .profit-display {
-            font-size: 0.8rem; 
-            color: #999; 
-            margin-top: 5px;
+            font-size: 0.85rem; 
+            color: #7f8c8d; 
+            margin-top: 4px;
             width: 100%;
             text-align: right;
         }
@@ -111,7 +132,6 @@
             margin-bottom: 25px;
             background: #fff;
         }
-        /* Margin Section Styling */
         fieldset.margin-section {
             border: 2px solid var(--margin-ui);
             background-color: #fffbf8;
@@ -207,14 +227,17 @@
 
 <div class="cost-floater">
     <div class="floater-header">Total Internal Cost</div>
-    <div class="main-number" id="floatingInternalCost">$0.00</div>
+    <div class="main-number-container">
+        <span id="slabCountBadge" class="slab-count-badge">2 Slabs</span>
+        <span class="main-number" id="floatingInternalCost">$0.00</span>
+    </div>
     
     <div class="secondary-details">
-        <span>Sell Price:</span>
+        <span>Quote Price:</span>
         <span class="sell-price" id="floatingCustomerPrice">$0.00</span>
     </div>
     <div class="profit-display">
-        Profit: <span id="floatingProfit">$0.00</span>
+        Est. Profit: <span id="floatingProfit">$0.00</span>
     </div>
 </div>
 
@@ -322,7 +345,7 @@
 
         <fieldset>
             <legend>3. Production Services (Internal)</legend>
-            <div class="section-note">Costs derived from "Parts+Labor Cost" production data.</div>
+            <div class="section-note">Selecting a "Double" service automatically calculates cost for 2 slabs.</div>
             <div class="checkbox-list" id="productionList">
                 </div>
         </fieldset>
@@ -339,10 +362,6 @@
 
 <script>
     // --- DATABASE ---
-    
-    // Structure: Style -> Height -> Type -> Width -> [JobLot, Pallet, Drop]
-    // Note: Simpson Rift Oak data is the same for all tiers.
-    
     const pricingDB = {
         // --- WOODGRAIN DATA ---
         "molded": {
@@ -354,7 +373,7 @@
             "70": {
                 "138HC": { "1/6": [66.63, 64.28, 57.55], "2/0": [68.85, 66.42, 59.29], "2/4": [71.98, 69.44, 61.74], "2/6": [72.99, 70.41, 62.54], "2/8": [75.21, 72.55, 64.28], "3/0": [78.35, 75.59, 66.74] },
                 "138SC": { "1/6": [114.77, 110.72, 90.06], "2/0": [114.77, 110.72, 90.06], "2/4": [119.63, 115.41, 93.87], "2/6": [119.63, 115.41, 93.87], "2/8": [123.27, 118.92, 96.73], "3/0": [126.77, 122.29, 99.47] },
-                "134SC": { "1/6": [129.46, 124.89, 101.58], "2/0": [129.46, 124.89, 101.58], "2/4": [134.33, 129.59, 105.40], "2/6": [134.33, 129.59, 105.40], "2/8": [137.95, 133.08, 108.25], "3/0": [141.46, 136.47, 111.00] }
+                "134SC": { "1/6": [129.46, 124.89, 101.58], "2/0": [129.46, 124.89, 101.58], "2/4": [134.33, 129.59, 105.40], "2/6": [134.33, 129.59, 105.40], "2/8": [137.95, 133.08, 108.25], "3/0": [141.46, 136.47, 111.00], "4/0": [null, null, 151.78] }
             },
             "80": {
                 "138HC": { "1/6": [81.34, 78.47, 71.19], "2/0": [83.43, 80.48, 72.83], "2/4": [86.34, 83.29, 75.12], "2/6": [87.29, 84.21, 75.86], "2/8": [89.38, 86.22, 77.51], "3/0": [92.32, 89.06, 79.81] },
@@ -514,7 +533,7 @@
             const label = document.createElement('label');
             label.className = 'checkbox-item';
             label.innerHTML = `
-                <input type="checkbox" class="calc-trigger" value="${item.cost}">
+                <input type="checkbox" class="calc-trigger" value="${item.cost}" data-name="${item.name}">
                 <span>${item.name}</span>
                 <span class="cost-badge">$${item.cost.toFixed(2)}</span>
             `;
@@ -591,25 +610,43 @@
             validPrice = false;
         }
 
+        // 2. Logic to detect "Double" in checked production adders
+        let slabCount = 1;
+        let addersTotal = 0;
+        
+        document.querySelectorAll('.calc-trigger:checked').forEach(box => {
+            addersTotal += parseFloat(box.value);
+            // Check if label contains "Double"
+            const name = box.dataset.name || "";
+            if (name.includes("Double")) {
+                slabCount = 2;
+            }
+        });
+
+        // Update Base Display to reflect slab count
         const baseDisplay = document.getElementById('baseSlabCost');
         const alertBox = document.getElementById('priceAlert');
+        const slabBadge = document.getElementById('slabCountBadge');
         
         if (validPrice) {
-            baseDisplay.innerText = "$" + baseCost.toFixed(2);
+            if (slabCount === 2) {
+                const totalSlabCost = baseCost * 2;
+                baseDisplay.innerText = `$${baseCost.toFixed(2)} x 2 = $${totalSlabCost.toFixed(2)}`;
+                slabBadge.style.display = "inline-block";
+                baseCost = totalSlabCost; // Use total for final calc
+            } else {
+                baseDisplay.innerText = "$" + baseCost.toFixed(2);
+                slabBadge.style.display = "none";
+            }
             baseDisplay.style.color = "var(--cost-color)";
             alertBox.style.display = "none";
         } else {
             baseDisplay.innerText = "N/A";
             baseDisplay.style.color = "#ccc";
             alertBox.style.display = "block";
+            slabBadge.style.display = "none";
             baseCost = 0;
         }
-
-        // 2. Adders Cost
-        let addersTotal = 0;
-        document.querySelectorAll('.calc-trigger:checked').forEach(box => {
-            addersTotal += parseFloat(box.value);
-        });
 
         // 3. Internal Cost
         const totalInternalCost = baseCost + addersTotal;
@@ -623,7 +660,6 @@
         let markupEquivalent = 0;
 
         if (marginDecimal >= 1) {
-            // Prevent divide by zero or negative price
             customerPrice = 0; 
         } else {
             customerPrice = totalInternalCost / (1 - marginDecimal);
@@ -631,7 +667,6 @@
         
         const profit = customerPrice - totalInternalCost;
         
-        // Calculate Markup Equivalent for reference: (Price / Cost)
         if (totalInternalCost > 0) {
             markupEquivalent = customerPrice / totalInternalCost;
         }
